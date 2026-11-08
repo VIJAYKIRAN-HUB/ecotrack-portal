@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
+    <rect width="600" height="400" fill="#f0fdf4"/>
+    <rect x="180" y="140" width="240" height="180" rx="10" fill="#166534" opacity="0.8"/>
+    <path d="M160 140 L440 140 L410 120 L190 120 Z" fill="#14532d"/>
+    <circle cx="300" cy="220" r="30" fill="#22c55e"/>
+    <path d="M285 220 L295 230 L315 210" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <text x="300" y="70" font-family="sans-serif" font-size="22" font-weight="bold" fill="#166534" text-anchor="middle">RESOLUTION PHOTO: SITE CLEANED</text>
+    <text x="300" y="360" font-family="sans-serif" font-size="14" fill="#14532d" text-anchor="middle">EcoTrack Resolution Evidence - Verified Clean Area</text>
+  </svg>

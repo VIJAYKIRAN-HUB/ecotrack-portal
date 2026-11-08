@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary-forest: #1b4332;
+    --primary-emerald: #10b981;
+    --surface-warm: #f8faf7;
+  }
+
+  body {
+    background-color: #f8faf7;
+    color: #111827;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+/* Custom scrollbar for dashboards */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #badbc2;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8ec19a;
+}
+
+/* Leaflet map styles and popups */
+.leaflet-container {
+  font-family: inherit;
+  z-index: 10;
+  border-radius: 0.75rem;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px -3px rgba(16, 37, 24, 0.15);
+  padding: 0;
+  overflow: hidden;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  line-height: 1.5;
+}
+
+/* Subtle transitions */
+.transition-smooth {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}

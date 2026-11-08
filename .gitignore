@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Environment Variables & Secrets (NEVER COMMIT SECRETS)
+.env
+.env.*
+!.env.example
+*.local
+
+# Production Builds
+dist/
+client/dist/
+server/dist/
+
+# SQLite Database
+database/*.db
+database/*.db-journal
+database/*.db-wal
+database/*.db-shm
+!database/.gitkeep
+
+# Server Uploads (exclude uploaded user photos, keep sample SVGs & .gitkeep)
+server/uploads/*
+!server/uploads/.gitkeep
+!server/uploads/*.svg
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# System & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
