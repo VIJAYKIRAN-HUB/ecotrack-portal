@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.js';
 import { useToast } from '../context/ToastContext.js';
-import { LogIn, Eye, EyeOff, Shield, User, HardHat, AlertCircle } from 'lucide-react';
+import { LogIn, Eye, EyeOff, Shield, User, HardHat, AlertCircle, Server, CheckCircle2 } from 'lucide-react';
+import { getActiveBackendUrl, setActiveBackendUrl, testBackendHealth } from '../services/api.js';
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuth();
@@ -15,6 +16,38 @@ export const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Backend connection settings
+  const [customUrl, setCustomUrl] = useState(
+    getActiveBackendUrl() === '/api' ? '' : getActiveBackendUrl()
+  );
+  const [showServerConfig, setShowServerConfig] = useState(false);
+  const [testingServer, setTestingServer] = useState(false);
+  const [serverStatus, setServerStatus] = useState<{ ok?: boolean; message?: string } | null>(null);
+
+  const handleConnectServer = async () => {
+    if (!customUrl.trim()) {
+      setActiveBackendUrl('');
+      setServerStatus({ ok: true, message: 'Reset to default relative /api' });
+      success('Reset backend URL to default');
+      return;
+    }
+    setTestingServer(true);
+    setServerStatus(null);
+    try {
+      const result = await testBackendHealth(customUrl);
+      setServerStatus(result);
+      if (result.ok) {
+        setActiveBackendUrl(customUrl);
+        success('Connected to backend successfully!');
+        setErrorMessage(null);
+      } else {
+        error(result.message);
+      }
+    } finally {
+      setTestingServer(false);
+    }
+  };
 
   const from = (location.state as any)?.from?.pathname || null;
 
@@ -37,8 +70,12 @@ export const LoginPage: React.FC = () => {
         navigate('/dashboard', { replace: true });
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Login failed. Please check your credentials.');
-      error(err.message || 'Login failed');
+      const msg = err.message || 'Login failed. Please check your credentials.';
+      setErrorMessage(msg);
+      error(msg);
+      if (msg.includes('backend') || msg.includes('Backend') || msg.includes('reach')) {
+        setShowServerConfig(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -111,11 +148,74 @@ export const LoginPage: React.FC = () => {
           </div>
 
           {errorMessage && (
-            <div className="mb-5 p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-              <span>{errorMessage}</span>
+            <div className="mb-4 p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <span className="font-semibold block mb-0.5">Connection Notice</span>
+                <span>{errorMessage}</span>
+              </div>
             </div>
           )}
+
+          {/* Backend Connection Widget */}
+          <div className="mb-5 p-3 bg-charcoal-50 border border-charcoal-200/80 rounded-2xl text-xs">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-charcoal-600 min-w-0">
+                <Server className="w-3.5 h-3.5 text-forest-700 shrink-0" />
+                <span className="font-semibold text-charcoal-700 shrink-0">Backend:</span>
+                <span className="font-mono text-[11px] text-charcoal-800 truncate" title={getActiveBackendUrl()}>
+                  {getActiveBackendUrl()}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowServerConfig(!showServerConfig)}
+                className="text-[11px] font-semibold text-forest-700 hover:text-forest-900 underline shrink-0"
+              >
+                {showServerConfig ? 'Close' : 'Set URL'}
+              </button>
+            </div>
+
+            {showServerConfig && (
+              <div className="mt-3 pt-3 border-t border-charcoal-200">
+                <label className="block text-[11px] font-bold text-charcoal-700 mb-1">
+                  Render Live Backend URL:
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={customUrl}
+                    onChange={(e) => setCustomUrl(e.target.value)}
+                    placeholder="https://ecotrack-portal-xxxx.onrender.com"
+                    className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-charcoal-300 focus:outline-none focus:ring-1 focus:ring-forest-600 bg-white"
+                  />
+                  <button
+                    type="button"
+                    disabled={testingServer}
+                    onClick={handleConnectServer}
+                    className="px-3 py-1.5 bg-forest-800 hover:bg-forest-900 text-white rounded-lg text-xs font-semibold disabled:opacity-50 shrink-0"
+                  >
+                    {testingServer ? 'Testing...' : 'Connect'}
+                  </button>
+                </div>
+                <p className="text-[10px] text-charcoal-500 mt-1">
+                  Copy your live URL from your Render dashboard (e.g. from the open Render tab) and paste it here.
+                </p>
+                {serverStatus && (
+                  <div className={`mt-2 p-2 rounded-lg text-[11px] flex items-center gap-1.5 ${
+                    serverStatus.ok ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+                  }`}>
+                    {serverStatus.ok ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                    )}
+                    <span>{serverStatus.message}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

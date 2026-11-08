@@ -1,12 +1,53 @@
-const envBase = (import.meta as any).env?.VITE_API_URL || '';
-const API_BASE = envBase ? (envBase.endsWith('/api') ? envBase : `${envBase.replace(/\/$/, '')}/api`) : '/api';
+export function getApiBase(): string {
+  const custom = typeof window !== 'undefined' ? localStorage.getItem('ecotrack_api_url') : null;
+  const envBase = (import.meta as any).env?.VITE_API_URL || '';
+  const raw = custom || envBase || '';
+  if (!raw) return '/api';
+  return raw.endsWith('/api') ? raw : `${raw.replace(/\/$/, '')}/api`;
+}
+
+export function getActiveBackendUrl(): string {
+  const custom = typeof window !== 'undefined' ? localStorage.getItem('ecotrack_api_url') : null;
+  const envBase = (import.meta as any).env?.VITE_API_URL || '';
+  return custom || envBase || '/api';
+}
+
+export function setActiveBackendUrl(url: string): void {
+  if (typeof window === 'undefined') return;
+  if (!url || url.trim() === '') {
+    localStorage.removeItem('ecotrack_api_url');
+  } else {
+    let clean = url.trim().replace(/\/$/, '');
+    if (clean.endsWith('/api')) clean = clean.slice(0, -4);
+    localStorage.setItem('ecotrack_api_url', clean);
+  }
+}
+
+export async function testBackendHealth(url?: string): Promise<{ ok: boolean; message: string }> {
+  try {
+    let base = url ? url.trim().replace(/\/$/, '') : getActiveBackendUrl();
+    if (base.endsWith('/api')) base = base.slice(0, -4);
+    if (!base || base === '/api') {
+      base = window.location.origin;
+    }
+    const healthUrl = `${base}/api/health`;
+    const res = await fetch(healthUrl, { method: 'GET' });
+    if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return { ok: true, message: data.app || 'Backend connected successfully!' };
+    }
+    return { ok: false, message: `Server responded with HTTP ${res.status}` };
+  } catch (err: any) {
+    return { ok: false, message: err.message || 'Cannot reach this URL. Is the Render server awake?' };
+  }
+}
 
 export function getAssetUrl(assetPath: string): string {
   if (!assetPath) return '';
   if (assetPath.startsWith('http://') || assetPath.startsWith('https://') || assetPath.startsWith('data:')) {
     return assetPath;
   }
-  const base = envBase ? envBase.replace(/\/api\/?$/, '').replace(/\/$/, '') : '';
+  const base = getActiveBackendUrl().replace(/\/api\/?$/, '').replace(/\/$/, '');
   return `${base}${assetPath.startsWith('/') ? '' : '/'}${assetPath}`;
 }
 
@@ -35,11 +76,35 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers.set('Content-Type', 'application/json');
   }
 
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers,
-    credentials: 'include', // Include cookies
-  });
+  const apiBase = getApiBase();
+  let res: Response;
+
+  try {
+    res = await fetch(`${apiBase}${endpoint}`, {
+      ...options,
+      headers,
+      credentials: 'include', // Include cookies
+    });
+  } catch (err: any) {
+    if (err.name === 'TypeError' || err.message === 'Failed to fetch') {
+      const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
+      const hasCustom = typeof window !== 'undefined' && localStorage.getItem('ecotrack_api_url');
+      const hasEnv = !!(import.meta as any).env?.VITE_API_URL;
+
+      if (isVercel && !hasCustom && !hasEnv) {
+        throw new ApiError(
+          'Backend connection required: Vercel does not know where your Render backend is. Please enter your Render backend URL below.',
+          0
+        );
+      }
+
+      throw new ApiError(
+        `Unable to reach backend (${apiBase}). If your Render server is sleeping (cold start), it takes ~45 seconds to wake up. Please wait a moment and try again.`,
+        0
+      );
+    }
+    throw err;
+  }
 
   if (res.status === 204) {
     return {} as T;
