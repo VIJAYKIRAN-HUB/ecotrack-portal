@@ -48,9 +48,9 @@ npm run dev
 
 | Role | Email | Password |
 |---|---|---|
-| **Municipal Admin** | `admin@ecotrack.gov.in` | `Admin@123` |
-| **Sanitation Worker** | `worker@ecotrack.gov.in` | `Worker@123` |
-| **Citizen** | `citizen@ecotrack.gov.in` | `Citizen@123` |
+| **Municipal Admin** | `admin@ecotrack.gov` | `Admin@123` |
+| **Sanitation Worker** | `worker@ecotrack.gov` | `Worker@123` |
+| **Citizen** | `citizen@example.com` | `Citizen@123` |
 
 ---
 
