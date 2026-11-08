@@ -1,45 +1,19 @@
+const DEFAULT_BACKEND_URL = 'https://ecotrack-portal-1.onrender.com';
+
 export function getApiBase(): string {
-  const custom = typeof window !== 'undefined' ? localStorage.getItem('ecotrack_api_url') : null;
   const envBase = (import.meta as any).env?.VITE_API_URL || '';
-  const raw = custom || envBase || '';
-  if (!raw) return '/api';
-  return raw.endsWith('/api') ? raw : `${raw.replace(/\/$/, '')}/api`;
-}
-
-export function getActiveBackendUrl(): string {
-  const custom = typeof window !== 'undefined' ? localStorage.getItem('ecotrack_api_url') : null;
-  const envBase = (import.meta as any).env?.VITE_API_URL || '';
-  return custom || envBase || '/api';
-}
-
-export function setActiveBackendUrl(url: string): void {
-  if (typeof window === 'undefined') return;
-  if (!url || url.trim() === '') {
-    localStorage.removeItem('ecotrack_api_url');
-  } else {
-    let clean = url.trim().replace(/\/$/, '');
-    if (clean.endsWith('/api')) clean = clean.slice(0, -4);
-    localStorage.setItem('ecotrack_api_url', clean);
+  if (envBase) {
+    return envBase.endsWith('/api') ? envBase : `${envBase.replace(/\/$/, '')}/api`;
   }
-}
-
-export async function testBackendHealth(url?: string): Promise<{ ok: boolean; message: string }> {
-  try {
-    let base = url ? url.trim().replace(/\/$/, '') : getActiveBackendUrl();
-    if (base.endsWith('/api')) base = base.slice(0, -4);
-    if (!base || base === '/api') {
-      base = window.location.origin;
-    }
-    const healthUrl = `${base}/api/health`;
-    const res = await fetch(healthUrl, { method: 'GET' });
-    if (res.ok) {
-      const data = await res.json().catch(() => ({}));
-      return { ok: true, message: data.app || 'Backend connected successfully!' };
-    }
-    return { ok: false, message: `Server responded with HTTP ${res.status}` };
-  } catch (err: any) {
-    return { ok: false, message: err.message || 'Cannot reach this URL. Is the Render server awake?' };
+  // When running on Vercel or any live host, route automatically to our live Render backend
+  if (
+    typeof window !== 'undefined' &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1'
+  ) {
+    return `${DEFAULT_BACKEND_URL}/api`;
   }
+  return '/api';
 }
 
 export function getAssetUrl(assetPath: string): string {
@@ -47,8 +21,13 @@ export function getAssetUrl(assetPath: string): string {
   if (assetPath.startsWith('http://') || assetPath.startsWith('https://') || assetPath.startsWith('data:')) {
     return assetPath;
   }
-  const base = getActiveBackendUrl().replace(/\/api\/?$/, '').replace(/\/$/, '');
-  return `${base}${assetPath.startsWith('/') ? '' : '/'}${assetPath}`;
+  const envBase = (import.meta as any).env?.VITE_API_URL || '';
+  const base =
+    envBase ||
+    (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+      ? DEFAULT_BACKEND_URL
+      : '');
+  return `${base.replace(/\/api\/?$/, '').replace(/\/$/, '')}${assetPath.startsWith('/') ? '' : '/'}${assetPath}`;
 }
 
 export class ApiError extends Error {
@@ -87,19 +66,8 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     });
   } catch (err: any) {
     if (err.name === 'TypeError' || err.message === 'Failed to fetch') {
-      const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
-      const hasCustom = typeof window !== 'undefined' && localStorage.getItem('ecotrack_api_url');
-      const hasEnv = !!(import.meta as any).env?.VITE_API_URL;
-
-      if (isVercel && !hasCustom && !hasEnv) {
-        throw new ApiError(
-          'Backend connection required: Vercel does not know where your Render backend is. Please enter your Render backend URL below.',
-          0
-        );
-      }
-
       throw new ApiError(
-        `Unable to reach backend (${apiBase}). If your Render server is sleeping (cold start), it takes ~45 seconds to wake up. Please wait a moment and try again.`,
+        'Unable to reach backend server. If Render is waking up from sleep, please wait 30 seconds and try again.',
         0
       );
     }
