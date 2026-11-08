@@ -23,9 +23,19 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Initialize database schema & optional MongoDB
+// Initialize database schema (SQLite) & optional MongoDB
 initDatabase();
-connectMongo().catch(() => {});
+if (
+  process.env.MONGODB_URI &&
+  !process.env.MONGODB_URI.includes('127.0.0.1') &&
+  !process.env.MONGODB_URI.includes('localhost')
+) {
+  connectMongo().catch(() => {});
+} else if (process.env.NODE_ENV !== 'production' && config.mongoUri && !config.mongoUri.includes('127.0.0.1')) {
+  connectMongo().catch(() => {});
+} else {
+  console.log('🍃 Database: Using local SQLite database (ecotrack.db).');
+}
 
 // CORS configuration for local development and cloud deployments (Render, Vercel, etc.)
 app.use(
@@ -124,10 +134,12 @@ if (fs.existsSync(clientDistPath)) {
 
 // Start server if not imported by test runner
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(config.port, config.host, () => {
+  const host = '0.0.0.0';
+  const port = Number(process.env.PORT) || config.port || 3000;
+  app.listen(port, host, () => {
     console.log(`\n======================================================`);
-    console.log(`🌿 EcoTrack Backend Server running at http://${config.host}:${config.port}`);
-    console.log(`   Health Check: http://${config.host}:${config.port}/api/health`);
+    console.log(`🌿 EcoTrack Backend Server running at http://${host}:${port}`);
+    console.log(`   Health Check: http://${host}:${port}/api/health`);
     console.log(`   Uploads:      ${config.uploadDir}`);
     console.log(`======================================================\n`);
   });

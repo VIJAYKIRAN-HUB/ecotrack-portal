@@ -109,3 +109,4 @@ EcoTrack is configured to run both frontend and backend on Render as a unified s
 
 ## 📄 License
 MIT
+

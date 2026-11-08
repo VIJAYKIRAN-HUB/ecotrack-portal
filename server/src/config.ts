@@ -11,7 +11,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 export const config = {
   port: Number(process.env.PORT) || 3000,
-  host: process.env.HOST || '0.0.0.0',
+  host: '0.0.0.0',
   jwtSecret: process.env.JWT_SECRET || 'ecotrack-sih2025-secure-local-secret-key-9823412',
   jwtExpiresIn: '7d',
   cookieName: 'ecotrack_token',
